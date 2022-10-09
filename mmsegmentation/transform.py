@@ -249,7 +249,7 @@ class Resize(object):
                 #results['scale'] = (new_h, new_w)
                 scale = (new_h, new_w)
 
-            print(img.shape)
+            # print(img.shape)
             img, scale_factor = mmcv.imrescale(
                 img, scale, return_scale=True)
             # the w_scale and h_scale has minor difference
@@ -1271,9 +1271,11 @@ class Resize(object):
 #        repr_str += f'seg_pad_val={self.pad_val})'
 #        return repr_str
 
-trans = Resize(img_scale=(1000, 500), ratio_range=[0.5, 2.0])
+trans = Resize(img_scale=(1000, 500), ratio_range=(0.5, 2.0))
+#trans = Resize(img_scale=(1000, 500))
 
 image = np.arange(500 * 300).reshape(500, 300).astype('uint8')
 
-image = trans(image, image)
+image, seg = trans(image, image)
+print(image.shape, seg.shape)
     
