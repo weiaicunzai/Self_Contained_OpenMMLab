@@ -6,3 +6,12 @@ In order to allivate these limitations, I remove the the dependency of openmmlab
 These self-contained modules can be easily integrated into your research project by simply copying and pasting them.
 This project is suitable for research projects.
 
+***Note: Since mmcv is a foundational library for computer vision research and supports many openmmlab code bases, and installing mmcv through pip is fairly easy. So I keep dependecies of mmcv in this project to keep the code simple and clean.***
+
+
+## Structure
+
+### mmsegmentation
+
+#### data augmentation
+mmsegmentation.mmseg.datasets.pipelines.transforms.py --> mmsegmentation.transform.py
