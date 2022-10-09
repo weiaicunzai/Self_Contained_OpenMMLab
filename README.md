@@ -15,3 +15,4 @@ This project is suitable for research projects.
 
 #### data augmentation
 mmsegmentation.mmseg.datasets.pipelines.transforms.py --> mmsegmentation.transform.py
+mmsegmentation.mmseg.datasets.pipelines.formatting.py --> mmsegmentation.transform.py
