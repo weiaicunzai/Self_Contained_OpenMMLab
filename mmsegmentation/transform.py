@@ -704,7 +704,7 @@ class RandomRotate(object):
             #for key in results.get('seg_fields', []):
             gt_seg = mmcv.imrotate(
                     #results[key],
-                    gt_seg
+                    gt_seg,
                     angle=degree,
                     border_value=self.seg_pad_val,
                     center=self.center,
@@ -1558,6 +1558,7 @@ trans = RandomFlip(prob=0.5)
 trans = PhotoMetricDistortion()
 trans = Normalize(mean=(1, 1, 1), std=(1,1,1))
 trans = DefaultFormatBundle()
+trans = RandomRotate(prob=1, degree=(0, 45))
 #trans = Resize(img_scale=(1000, 500))
 
 image = np.arange(500 * 300 * 3).reshape(500, 300, 3).astype('uint8')
