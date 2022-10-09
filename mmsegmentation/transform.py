@@ -312,54 +312,61 @@ class Resize(object):
 
 
 #@PIPELINES.register_module()
-#class RandomFlip(object):
-#    """Flip the image & seg.
-#    If the input dict contains the key "flip", then the flag will be used,
-#    otherwise it will be randomly decided by a ratio specified in the init
-#    method.
-#    Args:
-#        prob (float, optional): The flipping probability. Default: None.
-#        direction(str, optional): The flipping direction. Options are
-#            'horizontal' and 'vertical'. Default: 'horizontal'.
-#    """
-#
-#    @deprecated_api_warning({'flip_ratio': 'prob'}, cls_name='RandomFlip')
-#    def __init__(self, prob=None, direction='horizontal'):
-#        self.prob = prob
-#        self.direction = direction
-#        if prob is not None:
-#            assert prob >= 0 and prob <= 1
-#        assert direction in ['horizontal', 'vertical']
-#
-#    def __call__(self, results):
-#        """Call function to flip bounding boxes, masks, semantic segmentation
-#        maps.
-#        Args:
-#            results (dict): Result dict from loading pipeline.
-#        Returns:
-#            dict: Flipped results, 'flip', 'flip_direction' keys are added into
-#                result dict.
-#        """
-#
-#        if 'flip' not in results:
-#            flip = True if np.random.rand() < self.prob else False
-#            results['flip'] = flip
-#        if 'flip_direction' not in results:
-#            results['flip_direction'] = self.direction
-#        if results['flip']:
-#            # flip image
-#            results['img'] = mmcv.imflip(
-#                results['img'], direction=results['flip_direction'])
-#
-#            # flip segs
-#            for key in results.get('seg_fields', []):
-#                # use copy() to make numpy stride positive
-#                results[key] = mmcv.imflip(
-#                    results[key], direction=results['flip_direction']).copy()
-#        return results
-#
-#    def __repr__(self):
-#        return self.__class__.__name__ + f'(prob={self.prob})'
+class RandomFlip(object):
+    """Flip the image & seg.
+    If the input dict contains the key "flip", then the flag will be used,
+    otherwise it will be randomly decided by a ratio specified in the init
+    method.
+    Args:
+        prob (float, optional): The flipping probability. Default: None.
+        direction(str, optional): The flipping direction. Options are
+            'horizontal' and 'vertical'. Default: 'horizontal'.
+    """
+
+    @deprecated_api_warning({'flip_ratio': 'prob'}, cls_name='RandomFlip')
+    def __init__(self, prob=None, direction='horizontal'):
+        self.prob = prob
+        self.direction = direction
+        if prob is not None:
+            assert prob >= 0 and prob <= 1
+        assert direction in ['horizontal', 'vertical']
+
+    #def __call__(self, results):
+    def __call__(self, img, gt_seg):
+        """Call function to flip bounding boxes, masks, semantic segmentation
+        maps.
+        Args:
+            results (dict): Result dict from loading pipeline.
+        Returns:
+            dict: Flipped results, 'flip', 'flip_direction' keys are added into
+                result dict.
+        """
+
+        #if 'flip' not in results:
+            # flip = True if np.random.rand() < self.prob else False
+            # results['flip'] = flip
+        # if 'flip_direction' not in results:
+            # results['flip_direction'] = self.direction
+
+        flip = True if np.random.rand() < self.prob else False
+        # if results['flip']:
+        if flip:
+            # flip image
+            #results['img'] = mmcv.imflip(
+            #    results['img'], direction=results['flip_direction'])
+            img = mmcv.imflip(img, direction=self.direction)
+
+            # flip segs
+            #for key in results.get('seg_fields', []):
+                # use copy() to make numpy stride positive
+                #results[key] = mmcv.imflip(
+                    #results[key], direction=results['flip_direction']).copy()
+
+            gt_seg = mmcv.imflip(gt_seg, direction=self.direction).copy()
+        return img, gt_seg
+
+    def __repr__(self):
+        return self.__class__.__name__ + f'(prob={self.prob})'
 
 
 #@PIPELINES.register_module()
@@ -818,120 +825,122 @@ class RandomCrop(object):
 #
 #
 #@PIPELINES.register_module()
-#class PhotoMetricDistortion(object):
-#    """Apply photometric distortion to image sequentially, every transformation
-#    is applied with a probability of 0.5. The position of random contrast is in
-#    second or second to last.
-#    1. random brightness
-#    2. random contrast (mode 0)
-#    3. convert color from BGR to HSV
-#    4. random saturation
-#    5. random hue
-#    6. convert color from HSV to BGR
-#    7. random contrast (mode 1)
-#    Args:
-#        brightness_delta (int): delta of brightness.
-#        contrast_range (tuple): range of contrast.
-#        saturation_range (tuple): range of saturation.
-#        hue_delta (int): delta of hue.
-#    """
-#
-#    def __init__(self,
-#                 brightness_delta=32,
-#                 contrast_range=(0.5, 1.5),
-#                 saturation_range=(0.5, 1.5),
-#                 hue_delta=18):
-#        self.brightness_delta = brightness_delta
-#        self.contrast_lower, self.contrast_upper = contrast_range
-#        self.saturation_lower, self.saturation_upper = saturation_range
-#        self.hue_delta = hue_delta
-#
-#    def convert(self, img, alpha=1, beta=0):
-#        """Multiple with alpha and add beat with clip."""
-#        img = img.astype(np.float32) * alpha + beta
-#        img = np.clip(img, 0, 255)
-#        return img.astype(np.uint8)
-#
-#    def brightness(self, img):
-#        """Brightness distortion."""
-#        if random.randint(2):
-#            return self.convert(
-#                img,
-#                beta=random.uniform(-self.brightness_delta,
-#                                    self.brightness_delta))
-#        return img
-#
-#    def contrast(self, img):
-#        """Contrast distortion."""
-#        if random.randint(2):
-#            return self.convert(
-#                img,
-#                alpha=random.uniform(self.contrast_lower, self.contrast_upper))
-#        return img
-#
-#    def saturation(self, img):
-#        """Saturation distortion."""
-#        if random.randint(2):
-#            img = mmcv.bgr2hsv(img)
-#            img[:, :, 1] = self.convert(
-#                img[:, :, 1],
-#                alpha=random.uniform(self.saturation_lower,
-#                                     self.saturation_upper))
-#            img = mmcv.hsv2bgr(img)
-#        return img
-#
-#    def hue(self, img):
-#        """Hue distortion."""
-#        if random.randint(2):
-#            img = mmcv.bgr2hsv(img)
-#            img[:, :,
-#                0] = (img[:, :, 0].astype(int) +
-#                      random.randint(-self.hue_delta, self.hue_delta)) % 180
-#            img = mmcv.hsv2bgr(img)
-#        return img
-#
-#    def __call__(self, results):
-#        """Call function to perform photometric distortion on images.
-#        Args:
-#            results (dict): Result dict from loading pipeline.
-#        Returns:
-#            dict: Result dict with images distorted.
-#        """
-#
-#        img = results['img']
-#        # random brightness
-#        img = self.brightness(img)
-#
-#        # mode == 0 --> do random contrast first
-#        # mode == 1 --> do random contrast last
-#        mode = random.randint(2)
-#        if mode == 1:
-#            img = self.contrast(img)
-#
-#        # random saturation
-#        img = self.saturation(img)
-#
-#        # random hue
-#        img = self.hue(img)
-#
-#        # random contrast
-#        if mode == 0:
-#            img = self.contrast(img)
-#
-#        results['img'] = img
-#        return results
-#
-#    def __repr__(self):
-#        repr_str = self.__class__.__name__
-#        repr_str += (f'(brightness_delta={self.brightness_delta}, '
-#                     f'contrast_range=({self.contrast_lower}, '
-#                     f'{self.contrast_upper}), '
-#                     f'saturation_range=({self.saturation_lower}, '
-#                     f'{self.saturation_upper}), '
-#                     f'hue_delta={self.hue_delta})')
-#        return repr_str
-#
-#
+class PhotoMetricDistortion(object):
+    """Apply photometric distortion to image sequentially, every transformation
+    is applied with a probability of 0.5. The position of random contrast is in
+    second or second to last.
+    1. random brightness
+    2. random contrast (mode 0)
+    3. convert color from BGR to HSV
+    4. random saturation
+    5. random hue
+    6. convert color from HSV to BGR
+    7. random contrast (mode 1)
+    Args:
+        brightness_delta (int): delta of brightness.
+        contrast_range (tuple): range of contrast.
+        saturation_range (tuple): range of saturation.
+        hue_delta (int): delta of hue.
+    """
+
+    def __init__(self,
+                 brightness_delta=32,
+                 contrast_range=(0.5, 1.5),
+                 saturation_range=(0.5, 1.5),
+                 hue_delta=18):
+        self.brightness_delta = brightness_delta
+        self.contrast_lower, self.contrast_upper = contrast_range
+        self.saturation_lower, self.saturation_upper = saturation_range
+        self.hue_delta = hue_delta
+
+    def convert(self, img, alpha=1, beta=0):
+        """Multiple with alpha and add beat with clip."""
+        img = img.astype(np.float32) * alpha + beta
+        img = np.clip(img, 0, 255)
+        return img.astype(np.uint8)
+
+    def brightness(self, img):
+        """Brightness distortion."""
+        if random.randint(2):
+            return self.convert(
+                img,
+                beta=random.uniform(-self.brightness_delta,
+                                    self.brightness_delta))
+        return img
+
+    def contrast(self, img):
+        """Contrast distortion."""
+        if random.randint(2):
+            return self.convert(
+                img,
+                alpha=random.uniform(self.contrast_lower, self.contrast_upper))
+        return img
+
+    def saturation(self, img):
+        """Saturation distortion."""
+        if random.randint(2):
+            img = mmcv.bgr2hsv(img)
+            img[:, :, 1] = self.convert(
+                img[:, :, 1],
+                alpha=random.uniform(self.saturation_lower,
+                                     self.saturation_upper))
+            img = mmcv.hsv2bgr(img)
+        return img
+
+    def hue(self, img):
+        """Hue distortion."""
+        if random.randint(2):
+            img = mmcv.bgr2hsv(img)
+            img[:, :,
+                0] = (img[:, :, 0].astype(int) +
+                      random.randint(-self.hue_delta, self.hue_delta)) % 180
+            img = mmcv.hsv2bgr(img)
+        return img
+
+    #def __call__(self, results):
+    def __call__(self, img, gt_seg):
+        """Call function to perform photometric distortion on images.
+        Args:
+            results (dict): Result dict from loading pipeline.
+        Returns:
+            dict: Result dict with images distorted.
+        """
+
+        # img = results['img']
+        # random brightness
+        img = self.brightness(img)
+
+        # mode == 0 --> do random contrast first
+        # mode == 1 --> do random contrast last
+        mode = random.randint(2)
+        if mode == 1:
+            img = self.contrast(img)
+
+        # random saturation
+        img = self.saturation(img)
+
+        # random hue
+        img = self.hue(img)
+
+        # random contrast
+        if mode == 0:
+            img = self.contrast(img)
+
+        #results['img'] = img
+        #return results
+        return img, gt_seg
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__
+        repr_str += (f'(brightness_delta={self.brightness_delta}, '
+                     f'contrast_range=({self.contrast_lower}, '
+                     f'{self.contrast_upper}), '
+                     f'saturation_range=({self.saturation_lower}, '
+                     f'{self.saturation_upper}), '
+                     f'hue_delta={self.hue_delta})')
+        return repr_str
+
+
 #@PIPELINES.register_module()
 #class RandomCutOut(object):
 #    """CutOut operation.
@@ -1277,9 +1286,11 @@ class RandomCrop(object):
 
 trans = Resize(img_scale=(1000, 500), ratio_range=(0.5, 2.0))
 trans = RandomCrop(crop_size=(10000, 4400), cat_max_ratio=0.75)
+trans = RandomFlip(prob=0.5)
+trans = PhotoMetricDistortion()
 #trans = Resize(img_scale=(1000, 500))
 
-image = np.arange(500 * 300).reshape(500, 300).astype('uint8')
+image = np.arange(500 * 300 * 3).reshape(500, 300, 3).astype('uint8')
 
 image, seg = trans(image, image)
 print(image.shape, seg.shape)
