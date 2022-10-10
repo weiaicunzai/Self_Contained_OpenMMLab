@@ -373,72 +373,81 @@ class RandomFlip(object):
 
 
 #@PIPELINES.register_module()
-#class Pad(object):
-#    """Pad the image & mask.
-#    There are two padding modes: (1) pad to a fixed size and (2) pad to the
-#    minimum size that is divisible by some number.
-#    Added keys are "pad_shape", "pad_fixed_size", "pad_size_divisor",
-#    Args:
-#        size (tuple, optional): Fixed padding size.
-#        size_divisor (int, optional): The divisor of padded size.
-#        pad_val (float, optional): Padding value. Default: 0.
-#        seg_pad_val (float, optional): Padding value of segmentation map.
-#            Default: 255.
-#    """
-#
-#    def __init__(self,
-#                 size=None,
-#                 size_divisor=None,
-#                 pad_val=0,
-#                 seg_pad_val=255):
-#        self.size = size
-#        self.size_divisor = size_divisor
-#        self.pad_val = pad_val
-#        self.seg_pad_val = seg_pad_val
-#        # only one of size and size_divisor should be valid
-#        assert size is not None or size_divisor is not None
-#        assert size is None or size_divisor is None
-#
-#    def _pad_img(self, results):
-#        """Pad images according to ``self.size``."""
-#        if self.size is not None:
-#            padded_img = mmcv.impad(
-#                results['img'], shape=self.size, pad_val=self.pad_val)
-#        elif self.size_divisor is not None:
-#            padded_img = mmcv.impad_to_multiple(
-#                results['img'], self.size_divisor, pad_val=self.pad_val)
-#        results['img'] = padded_img
-#        results['pad_shape'] = padded_img.shape
-#        results['pad_fixed_size'] = self.size
-#        results['pad_size_divisor'] = self.size_divisor
-#
-#    def _pad_seg(self, results):
-#        """Pad masks according to ``results['pad_shape']``."""
-#        for key in results.get('seg_fields', []):
-#            results[key] = mmcv.impad(
-#                results[key],
-#                shape=results['pad_shape'][:2],
-#                pad_val=self.seg_pad_val)
-#
-#    def __call__(self, results):
-#        """Call function to pad images, masks, semantic segmentation maps.
-#        Args:
-#            results (dict): Result dict from loading pipeline.
-#        Returns:
-#            dict: Updated result dict.
-#        """
-#
-#        self._pad_img(results)
-#        self._pad_seg(results)
-#        return results
-#
-#    def __repr__(self):
-#        repr_str = self.__class__.__name__
-#        repr_str += f'(size={self.size}, size_divisor={self.size_divisor}, ' \
-#                    f'pad_val={self.pad_val})'
-#        return repr_str
-#
-#
+class Pad(object):
+    """Pad the image & mask.
+    There are two padding modes: (1) pad to a fixed size and (2) pad to the
+    minimum size that is divisible by some number.
+    Added keys are "pad_shape", "pad_fixed_size", "pad_size_divisor",
+    Args:
+        size (tuple, optional): Fixed padding size.
+        size_divisor (int, optional): The divisor of padded size.
+        pad_val (float, optional): Padding value. Default: 0.
+        seg_pad_val (float, optional): Padding value of segmentation map.
+            Default: 255.
+    """
+
+    def __init__(self,
+                 size=None,
+                 size_divisor=None,
+                 pad_val=0,
+                 seg_pad_val=255):
+        self.size = size
+        self.size_divisor = size_divisor
+        self.pad_val = pad_val
+        self.seg_pad_val = seg_pad_val
+        # only one of size and size_divisor should be valid
+        assert size is not None or size_divisor is not None
+        assert size is None or size_divisor is None
+
+    #def _pad_img(self, results):
+    def _pad_img(self, img):
+        """Pad images according to ``self.size``."""
+        if self.size is not None:
+            padded_img = mmcv.impad(
+                # results['img'], shape=self.size, pad_val=self.pad_val)
+                img, shape=self.size, pad_val=self.pad_val)
+        elif self.size_divisor is not None:
+            padded_img = mmcv.impad_to_multiple(
+                # results['img'], self.size_divisor, pad_val=self.pad_val)
+                img, self.size_divisor, pad_val=self.pad_val)
+        # results['img'] = padded_img
+        # results['pad_shape'] = padded_img.shape
+        # results['pad_fixed_size'] = self.size
+        # results['pad_size_divisor'] = self.size_divisor
+        return padded_img
+
+    def _pad_seg(self, gt_seg):
+        """Pad masks according to ``results['pad_shape']``."""
+        # for key in results.get('seg_fields', []):
+            # results[key] = mmcv.impad(
+        gt_seg = mmcv.impad(
+                # results[key],
+                gt_seg,
+                shape=self.size,
+                pad_val=self.seg_pad_val)
+
+        return gt_seg
+
+    #def __call__(self, results):
+    def __call__(self, img, gt_seg):
+        """Call function to pad images, masks, semantic segmentation maps.
+        Args:
+            results (dict): Result dict from loading pipeline.
+        Returns:
+            dict: Updated result dict.
+        """
+
+        img = self._pad_img(img)
+        gt_seg = self._pad_seg(gt_seg)
+        return img, gt_seg
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__
+        repr_str += f'(size={self.size}, size_divisor={self.size_divisor}, ' \
+                    f'pad_val={self.pad_val})'
+        return repr_str
+
+
 #@PIPELINES.register_module()
 class Normalize(object):
     """Normalize the image.
@@ -1552,17 +1561,18 @@ class DefaultFormatBundle(object):
 
 
 
-trans = Resize(img_scale=(1000, 500), ratio_range=(0.5, 2.0))
-trans = RandomCrop(crop_size=(10000, 4400), cat_max_ratio=0.75)
-trans = RandomFlip(prob=0.5)
-trans = PhotoMetricDistortion()
-trans = Normalize(mean=(1, 1, 1), std=(1,1,1))
-trans = DefaultFormatBundle()
-trans = RandomRotate(prob=1, degree=(0, 45))
-#trans = Resize(img_scale=(1000, 500))
-
-image = np.arange(500 * 300 * 3).reshape(500, 300, 3).astype('uint8')
-
-image, seg = trans(image, image)
-print(image.shape, seg.shape)
-    
+#trans = Resize(img_scale=(400, 400), ratio_range=(0.5, 2.0))
+#trans = RandomCrop(crop_size=(500, 500), cat_max_ratio=0.75)
+#trans = RandomFlip(prob=0.5)
+#trans = PhotoMetricDistortion()
+#trans = Normalize(mean=(1, 1, 1), std=(1,1,1))
+#trans = DefaultFormatBundle()
+#trans = RandomRotate(prob=1, degree=(0, 45))
+#trans = Pad(size=(500, 500))
+##trans = Resize(img_scale=(1000, 500))
+#
+#image = np.arange(500 * 500 * 3).reshape(500, 500, 3).astype('uint8')
+#
+#image, seg = trans(image, image)
+#print(image.shape, seg.shape)
+#    
