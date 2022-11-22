@@ -1674,7 +1674,7 @@ class MultiScaleFlipAug(object):
                     # _results['scale'] = scale
                     # _results['flip'] = flip
                     # _results['flip_direction'] = direction
-                    print(self.transforms, '.llll')
+                    # print(self.transforms, '.llll')
                     data = self.transforms(
                         img, 
                         gt_seg, 
