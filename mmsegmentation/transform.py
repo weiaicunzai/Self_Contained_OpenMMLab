@@ -17,60 +17,6 @@ import torch
 
 
 # @PIPELINES.register_module()
-#class ResizeToMultiple(object):
-#    """Resize images & seg to multiple of divisor.
-#    Args:
-#        size_divisor (int): images and gt seg maps need to resize to multiple
-#            of size_divisor. Default: 32.
-#        interpolation (str, optional): The interpolation mode of image resize.
-#            Default: None
-#    """
-#
-#    def __init__(self, size_divisor=32, interpolation=None):
-#        self.size_divisor = size_divisor
-#        self.interpolation = interpolation
-#
-#    def __call__(self, results):
-#        """Call function to resize images, semantic segmentation map to
-#        multiple of size divisor.
-#        Args:
-#            results (dict): Result dict from loading pipeline.
-#        Returns:
-#            dict: Resized results, 'img_shape', 'pad_shape' keys are updated.
-#        """
-#        # Align image to multiple of size divisor.
-#        img = results['img']
-#        img = mmcv.imresize_to_multiple(
-#            img,
-#            self.size_divisor,
-#            scale_factor=1,
-#            interpolation=self.interpolation
-#            if self.interpolation else 'bilinear')
-#
-#        results['img'] = img
-#        results['img_shape'] = img.shape
-#        results['pad_shape'] = img.shape
-#
-#        # Align segmentation map to multiple of size divisor.
-#        for key in results.get('seg_fields', []):
-#            gt_seg = results[key]
-#            gt_seg = mmcv.imresize_to_multiple(
-#                gt_seg,
-#                self.size_divisor,
-#                scale_factor=1,
-#                interpolation='nearest')
-#            results[key] = gt_seg
-#
-#        return results
-#
-#    def __repr__(self):
-#        repr_str = self.__class__.__name__
-#        repr_str += (f'(size_divisor={self.size_divisor}, '
-#                     f'interpolation={self.interpolation})')
-#        return repr_str
-
-
-# @PIPELINES.register_module()
 class Resize(object):
     """Resize images & seg.
     This transform resizes the input image to some scale. If the input dict
@@ -304,9 +250,9 @@ class Resize(object):
         """
 
         # if 'scale' not in results:
-        print(kwargs)
+        # print(kwargs)
         if 'scale' not in kwargs:
-            print('hhhhhh')
+            # print('hhhhhh')
             scale, scale_idx = self._random_scale(img)
         else:
             scale = kwargs['scale']
@@ -367,6 +313,7 @@ class RandomFlip(object):
         else:
             flip = kwargs['flip']
         # if results['flip']:
+        # print(kwargs)
         if 'flip_direction' not in kwargs:
             flip_direction = self.direction
         else:
@@ -377,6 +324,7 @@ class RandomFlip(object):
             #results['img'] = mmcv.imflip(
             #    results['img'], direction=results['flip_direction'])
             #img = mmcv.imflip(img, direction=self.direction)
+            # print(flip_direction)
             img = mmcv.imflip(img, direction=flip_direction)
 
             # flip segs
@@ -1325,131 +1273,131 @@ class PhotoMetricDistortion(object):
 #        return repr_str
 
 
-class MultiScaleFlipAug(object):
-    """Test-time augmentation with multiple scales and flipping.
-    An example configuration is as followed:
-    .. code-block::
-        img_scale=(2048, 1024),
-        img_ratios=[0.5, 1.0],
-        flip=True,
-        transforms=[
-            dict(type='Resize', keep_ratio=True),
-            dict(type='RandomFlip'),
-            dict(type='Normalize', **img_norm_cfg),
-            dict(type='Pad', size_divisor=32),
-            dict(type='ImageToTensor', keys=['img']),
-            dict(type='Collect', keys=['img']),
-        ]
-    After MultiScaleFLipAug with above configuration, the results are wrapped
-    into lists of the same length as followed:
-    .. code-block::
-        dict(
-            img=[...],
-            img_shape=[...],
-            scale=[(1024, 512), (1024, 512), (2048, 1024), (2048, 1024)]
-            flip=[False, True, False, True]
-            ...
-        )
-    Args:
-        transforms (list[dict]): Transforms to apply in each augmentation.
-        img_scale (None | tuple | list[tuple]): Images scales for resizing.
-        img_ratios (float | list[float]): Image ratios for resizing
-        flip (bool): Whether apply flip augmentation. Default: False.
-        flip_direction (str | list[str]): Flip augmentation directions,
-            options are "horizontal" and "vertical". If flip_direction is list,
-            multiple flip augmentations will be applied.
-            It has no effect when flip == False. Default: "horizontal".
-    """
+# class MultiScaleFlipAug(object):
+#     """Test-time augmentation with multiple scales and flipping.
+#     An example configuration is as followed:
+#     .. code-block::
+#         img_scale=(2048, 1024),
+#         img_ratios=[0.5, 1.0],
+#         flip=True,
+#         transforms=[
+#             dict(type='Resize', keep_ratio=True),
+#             dict(type='RandomFlip'),
+#             dict(type='Normalize', **img_norm_cfg),
+#             dict(type='Pad', size_divisor=32),
+#             dict(type='ImageToTensor', keys=['img']),
+#             dict(type='Collect', keys=['img']),
+#         ]
+#     After MultiScaleFLipAug with above configuration, the results are wrapped
+#     into lists of the same length as followed:
+#     .. code-block::
+#         dict(
+#             img=[...],
+#             img_shape=[...],
+#             scale=[(1024, 512), (1024, 512), (2048, 1024), (2048, 1024)]
+#             flip=[False, True, False, True]
+#             ...
+#         )
+#     Args:
+#         transforms (list[dict]): Transforms to apply in each augmentation.
+#         img_scale (None | tuple | list[tuple]): Images scales for resizing.
+#         img_ratios (float | list[float]): Image ratios for resizing
+#         flip (bool): Whether apply flip augmentation. Default: False.
+#         flip_direction (str | list[str]): Flip augmentation directions,
+#             options are "horizontal" and "vertical". If flip_direction is list,
+#             multiple flip augmentations will be applied.
+#             It has no effect when flip == False. Default: "horizontal".
+#     """
 
-    def __init__(self,
-                 transforms,
-                 img_scale,
-                 img_ratios=None,
-                 flip=False,
-                 flip_direction='horizontal'):
-        if flip:
-            trans_index = {
-                key['type']: index
-                for index, key in enumerate(transforms)
-            }
-            if 'RandomFlip' in trans_index and 'Pad' in trans_index:
-                assert trans_index['RandomFlip'] < trans_index['Pad'], \
-                    'Pad must be executed after RandomFlip when flip is True'
-        self.transforms = Compose(transforms)
-        if img_ratios is not None:
-            img_ratios = img_ratios if isinstance(img_ratios,
-                                                  list) else [img_ratios]
-            assert mmcv.is_list_of(img_ratios, float)
-        if img_scale is None:
-            # mode 1: given img_scale=None and a range of image ratio
-            self.img_scale = None
-            assert mmcv.is_list_of(img_ratios, float)
-        elif isinstance(img_scale, tuple) and mmcv.is_list_of(
-                img_ratios, float):
-            assert len(img_scale) == 2
-            # mode 2: given a scale and a range of image ratio
-            self.img_scale = [(int(img_scale[0] * ratio),
-                               int(img_scale[1] * ratio))
-                              for ratio in img_ratios]
-        else:
-            # mode 3: given multiple scales
-            self.img_scale = img_scale if isinstance(img_scale,
-                                                     list) else [img_scale]
-        assert mmcv.is_list_of(self.img_scale, tuple) or self.img_scale is None
-        self.flip = flip
-        self.img_ratios = img_ratios
-        self.flip_direction = flip_direction if isinstance(
-            flip_direction, list) else [flip_direction]
-        assert mmcv.is_list_of(self.flip_direction, str)
-        if not self.flip and self.flip_direction != ['horizontal']:
-            warnings.warn(
-                'flip_direction has no effect when flip is set to False')
-        if (self.flip
-                and not any([t['type'] == 'RandomFlip' for t in transforms])):
-            warnings.warn(
-                'flip has no effect when RandomFlip is not in transforms')
+#     def __init__(self,
+#                  transforms,
+#                  img_scale,
+#                  img_ratios=None,
+#                  flip=False,
+#                  flip_direction='horizontal'):
+#         if flip:
+#             trans_index = {
+#                 key['type']: index
+#                 for index, key in enumerate(transforms)
+#             }
+#             if 'RandomFlip' in trans_index and 'Pad' in trans_index:
+#                 assert trans_index['RandomFlip'] < trans_index['Pad'], \
+#                     'Pad must be executed after RandomFlip when flip is True'
+#         self.transforms = Compose(transforms)
+#         if img_ratios is not None:
+#             img_ratios = img_ratios if isinstance(img_ratios,
+#                                                   list) else [img_ratios]
+#             assert mmcv.is_list_of(img_ratios, float)
+#         if img_scale is None:
+#             # mode 1: given img_scale=None and a range of image ratio
+#             self.img_scale = None
+#             assert mmcv.is_list_of(img_ratios, float)
+#         elif isinstance(img_scale, tuple) and mmcv.is_list_of(
+#                 img_ratios, float):
+#             assert len(img_scale) == 2
+#             # mode 2: given a scale and a range of image ratio
+#             self.img_scale = [(int(img_scale[0] * ratio),
+#                                int(img_scale[1] * ratio))
+#                               for ratio in img_ratios]
+#         else:
+#             # mode 3: given multiple scales
+#             self.img_scale = img_scale if isinstance(img_scale,
+#                                                      list) else [img_scale]
+#         assert mmcv.is_list_of(self.img_scale, tuple) or self.img_scale is None
+#         self.flip = flip
+#         self.img_ratios = img_ratios
+#         self.flip_direction = flip_direction if isinstance(
+#             flip_direction, list) else [flip_direction]
+#         assert mmcv.is_list_of(self.flip_direction, str)
+#         if not self.flip and self.flip_direction != ['horizontal']:
+#             warnings.warn(
+#                 'flip_direction has no effect when flip is set to False')
+#         if (self.flip
+#                 and not any([t['type'] == 'RandomFlip' for t in transforms])):
+#             warnings.warn(
+#                 'flip has no effect when RandomFlip is not in transforms')
 
-    # def __call__(self, results):
-    def __call__(self, img, gt_seg):
-        """Call function to apply test time augment transforms on results.
-        Args:
-            results (dict): Result dict contains the data to transform.
-        Returns:
-           dict[str: list]: The augmented data, where each value is wrapped
-               into a list.
-        """
+#     # def __call__(self, results):
+#     def __call__(self, img, gt_seg):
+#         """Call function to apply test time augment transforms on results.
+#         Args:
+#             results (dict): Result dict contains the data to transform.
+#         Returns:
+#            dict[str: list]: The augmented data, where each value is wrapped
+#                into a list.
+#         """
 
-        aug_data = []
-        if self.img_scale is None and mmcv.is_list_of(self.img_ratios, float):
-            # h, w = results['img'].shape[:2]
-            h, w = img.shape[:2]
-            img_scale = [(int(w * ratio), int(h * ratio))
-                         for ratio in self.img_ratios]
-        else:
-            img_scale = self.img_scale
-        flip_aug = [False, True] if self.flip else [False]
-        for scale in img_scale:
-            for flip in flip_aug:
-                for direction in self.flip_direction:
-                    # _results = results.copy()
-                    # _results['scale'] = scale
-                    # _results['flip'] = flip
-                    # _results['flip_direction'] = direction
-                    data = self.transforms(_results)
-                    aug_data.append(data)
-        # list of dict to dict of list
-        aug_data_dict = {key: [] for key in aug_data[0]}
-        for data in aug_data:
-            for key, val in data.items():
-                aug_data_dict[key].append(val)
-        return aug_data_dict
+#         aug_data = []
+#         if self.img_scale is None and mmcv.is_list_of(self.img_ratios, float):
+#             # h, w = results['img'].shape[:2]
+#             h, w = img.shape[:2]
+#             img_scale = [(int(w * ratio), int(h * ratio))
+#                          for ratio in self.img_ratios]
+#         else:
+#             img_scale = self.img_scale
+#         flip_aug = [False, True] if self.flip else [False]
+#         for scale in img_scale:
+#             for flip in flip_aug:
+#                 for direction in self.flip_direction:
+#                     # _results = results.copy()
+#                     # _results['scale'] = scale
+#                     # _results['flip'] = flip
+#                     # _results['flip_direction'] = direction
+#                     data = self.transforms(_results)
+#                     aug_data.append(data)
+#         # list of dict to dict of list
+#         aug_data_dict = {key: [] for key in aug_data[0]}
+#         for data in aug_data:
+#             for key, val in data.items():
+#                 aug_data_dict[key].append(val)
+#         return aug_data_dict
 
-    def __repr__(self):
-        repr_str = self.__class__.__name__
-        repr_str += f'(transforms={self.transforms}, '
-        repr_str += f'img_scale={self.img_scale}, flip={self.flip})'
-        repr_str += f'flip_direction={self.flip_direction}'
-        return repr_str
+#     def __repr__(self):
+#         repr_str = self.__class__.__name__
+#         repr_str += f'(transforms={self.transforms}, '
+#         repr_str += f'img_scale={self.img_scale}, flip={self.flip})'
+#         repr_str += f'flip_direction={self.flip_direction}'
+#         return repr_str
 
 
 
@@ -1689,6 +1637,60 @@ class Compose(object):
         return format_string
 
 
+class ResizeToMultiple(object):
+    """Resize images & seg to multiple of divisor.
+    Args:
+        size_divisor (int): images and gt seg maps need to resize to multiple
+            of size_divisor. Default: 32.
+        interpolation (str, optional): The interpolation mode of image resize.
+            Default: None
+    """
+
+    def __init__(self, size_divisor=32, interpolation=None):
+        self.size_divisor = size_divisor
+        self.interpolation = interpolation
+
+    # def __call__(self, results):
+    def __call__(self, img, gt_seg, **kwargs):
+        """Call function to resize images, semantic segmentation map to
+        multiple of size divisor.
+        Args:
+            results (dict): Result dict from loading pipeline.
+        Returns:
+            dict: Resized results, 'img_shape', 'pad_shape' keys are updated.
+        """
+        # Align image to multiple of size divisor.
+        # img = results['img']
+        img = mmcv.imresize_to_multiple(
+            img,
+            self.size_divisor,
+            scale_factor=1,
+            interpolation=self.interpolation
+            if self.interpolation else 'bilinear')
+
+        # results['img'] = img
+        # results['img_shape'] = img.shape
+        # results['pad_shape'] = img.shape
+
+        # Align segmentation map to multiple of size divisor.
+        # for key in results.get('seg_fields', []):
+            # gt_seg = results[key]
+        gt_seg = mmcv.imresize_to_multiple(
+                gt_seg,
+                self.size_divisor,
+                scale_factor=1,
+                interpolation='nearest')
+            # results[key] = gt_seg
+
+        #return results
+        return img, gt_seg
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__
+        repr_str += (f'(size_divisor={self.size_divisor}, '
+                     f'interpolation={self.interpolation})')
+        return repr_str
+
 
 class MultiScaleFlipAug(object):
     """Test-time augmentation with multiple scales and flipping.
@@ -1776,6 +1778,26 @@ class MultiScaleFlipAug(object):
             warnings.warn(
                 'flip has no effect when RandomFlip is not in transforms')
 
+    def construct_flip_param(self):
+
+        flip_aug = [False, True] if self.flip else [False]
+        if len(self.flip_direction) == 2:
+            flip_aug.append(True)
+
+
+        flip_direction = self.flip_direction
+        if self.flip:
+            flip_direction.append(flip_direction[0])
+        #else:
+            #flip_direction = self.flip_direction
+
+        assert len(flip_aug) == len(flip_direction)
+
+        return list(zip(flip_aug, flip_direction))
+
+
+
+
     #def __call__(self, results):
     def __call__(self, img, gt_seg, **kwargs):
         """Call function to apply test time augment transforms on results.
@@ -1794,15 +1816,46 @@ class MultiScaleFlipAug(object):
                          for ratio in self.img_ratios]
         else:
             img_scale = self.img_scale
-        flip_aug = [False, True] if self.flip else [False]
+
+        # flip_aug = [False, True] if self.flip else [False]
+
+
+        # if len(self.flip_direction) 
+
+        #if self.flip:
+        #    flip_param = list(zip(
+        #        [False, True],
+        #        self.flip_direction
+
+        #    ))
+
+        # if len(flip_aug) == 
+
+        # flip_direction = self.flip_direction.extend
+
+
+
+
+
+
+        # if len(self.flip_direction) == 2:
+            # len(flip_aug) == len(self.flip_direction)
+            # flip_param = list(zip([*flip_aug, True], [self.flip_direction[0], *self.flip_direction]))
+
+        flip_param = self.construct_flip_param()
+
+        # print(flip_aug)
         for scale in img_scale:
-            for flip in flip_aug:
-                for direction in self.flip_direction:
+            #for flip in flip_aug:
+            #    for direction in self.flip_direction:
+            # print(scale)
+            for flip, direction in flip_param:
                     # _results = results.copy()
                     # _results['scale'] = scale
                     # _results['flip'] = flip
                     # _results['flip_direction'] = direction
                     # print(self.transforms, '.llll')
+                    # print(scale, flip, direction)
                     data = self.transforms(
                         img, 
                         gt_seg, 
@@ -1812,12 +1865,13 @@ class MultiScaleFlipAug(object):
                     )
                     aug_data.append(data)
         # list of dict to dict of list
-        print(len(aug_data))
-        aug_data_dict = {key: [] for key in aug_data[0]}
-        for data in aug_data:
-            for key, val in data.items():
-                aug_data_dict[key].append(val)
-        return aug_data_dict
+        # print(len(aug_data))
+        # aug_data_dict = {key: [] for key in aug_data[0]}
+        # for data in aug_data:
+            # for key, val in data.items():
+                # aug_data_dict[key].append(val)
+        # return aug_data_dict
+        return aug_data
 
     def __repr__(self):
         repr_str = self.__class__.__name__
@@ -1827,39 +1881,79 @@ class MultiScaleFlipAug(object):
         return repr_str
 
 
-#trans = Resize(img_scale=(400, 400), ratio_range=(0.5, 2.0))
-#trans = RandomCrop(crop_size=(500, 500), cat_max_ratio=0.75)
-#trans = RandomFlip(prob=0.5)
-#trans = PhotoMetricDistortion()
-#trans = Normalize(mean=(1, 1, 1), std=(1,1,1))
-#trans = DefaultFormatBundle()
-#trans = RandomRotate(prob=1, degree=(0, 45))
-#trans = Pad(size=(500, 500))
-##trans = Resize(img_scale=(1000, 500))
+
+
+
+
+
+#img_scale = (522, 775)
+#crop_size = (480, 480)
 #
-# seg = np.arange(500 * 500 * 3).reshape(500, 500, 3).astype('uint8')
+#my_trans = []
+#my_trans.append(Resize(img_scale=img_scale, ratio_range=(0.5, 2.0)))
+#my_trans.append(RandomRotate(prob=1, degree=(0, 90), auto_bound=True))
+#my_trans.append(RandomCrop(crop_size=crop_size, cat_max_ratio=0.75))
+#my_trans.append(RandomFlip(prob=0.5))
+#my_trans.append(PhotoMetricDistortion())
+## my_trans.append(Normalize(mean=(1, 1, 1), std=(1,1,1)))
+## my_trans.append(DefaultFormatBundle())
+#my_trans.append(Pad(size=crop_size))
+## my_trans.append(MultiScaleFlipAug(
+#    # Resize(keep_ratio=True)
+## ))
+## )
+## my_trans.append( Resize(img_scale=(1000, 500)))
+##
+## seg = np.arange(500 * 500 * 3).reshape(500, 500, 3).astype('uint8')
+##
 #
-my_trans = Compose(my_trans)
-
-
-
-import cv2
-image = cv2.imread('/data/hdd1/by/House-Prices-Advanced-Regression-Techniques/data/mmseg_glas/train/train_10.bmp')
-# image = image[:500, :500]
-seg = np.arange(image.shape[0] *  image.shape[1] * 3).reshape(image.shape[0], image.shape[1], 3).astype('uint8')
-# image, seg = trans(image, seg)
-image, seg = my_trans(image, seg)
-
-print(image.shape, seg.shape)
-#    
-
-#trans = MultiScaleFlipAug(
+#
+#my_trans = Compose(my_trans)
+#
+#my_trans = MultiScaleFlipAug(
+#    transforms=[
+#            Resize(keep_ratio=True),
+#            ResizeToMultiple(size_divisor=16),
+#            RandomFlip(),
+#    ],
 #    flip=True,
-#    img_scale=(400, 400),
+#    flip_direction=['horizontal', 'vertical'],
+#    #flip_direction=['horizontal'],
+#    img_scale=img_scale,
 #    img_ratios=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0],
-#    transforms=[Resize(keep_ratio=True),RandomFlip()]
-#    )
+#)
 #
-#image = np.arange(500 * 500 * 3).reshape(500, 500, 3).astype('uint8')
-#image, seg = trans(image, image)
-#print(image.shape, seg.shape)
+#
+#
+#
+#
+#import cv2
+#image = cv2.imread('/data/hdd1/by/House-Prices-Advanced-Regression-Techniques/data/mmseg_glas/train/train_10.bmp')
+## image = image[:500, :500]
+#seg = np.arange(image.shape[0] *  image.shape[1] * 3).reshape(image.shape[0], image.shape[1], 3).astype('uint8')
+## image, seg = trans(image, seg)
+## image, seg = my_trans(image, seg)
+#data = my_trans(image, seg)
+#
+##print(image.shape, seg.shape)
+##    
+#
+#for idx, i in enumerate(data):
+#
+#    cv2.imwrite('tmp/ff_{}.jpg'.format(idx), i[0])
+##image, seg = trans(image, image)
+##print(image.shape, seg.shape)
+##    
+#
+##trans = MultiScaleFlipAug(
+##    flip=True,
+##    img_scale=(400, 400),
+##    img_ratios=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0],
+##    transforms=[Resize(keep_ratio=True),RandomFlip()]
+##    )
+##
+##image = np.arange(500 * 500 * 3).reshape(500, 500, 3).astype('uint8')
+##image, seg = trans(image, image)
+##print(image.shape, seg.shape)
+#
+#
