@@ -1844,7 +1844,9 @@ class MultiScaleFlipAug(object):
 
         flip_param = self.construct_flip_param()
 
+
         # print(flip_aug)
+        # flips = []
         for scale in img_scale:
             #for flip in flip_aug:
             #    for direction in self.flip_direction:
@@ -1864,6 +1866,7 @@ class MultiScaleFlipAug(object):
                         flip_direction=direction
                     )
                     aug_data.append(data)
+                    # flips.append([flip, direction])
         # list of dict to dict of list
         # print(len(aug_data))
         # aug_data_dict = {key: [] for key in aug_data[0]}
@@ -1871,7 +1874,13 @@ class MultiScaleFlipAug(object):
             # for key, val in data.items():
                 # aug_data_dict[key].append(val)
         # return aug_data_dict
-        return aug_data
+
+        imgs = []
+        # flip_
+        for data, param in zip(aug_data,  flip_param):
+            imgs.append(data[0])
+
+        return imgs, gt_seg, flip_param
 
     def __repr__(self):
         repr_str = self.__class__.__name__
