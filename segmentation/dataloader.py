@@ -26,3 +26,6 @@ class IterLoader:
 
     def __len__(self):
         return len(self._dataloader)
+
+    def __iter__(self):
+        return self
