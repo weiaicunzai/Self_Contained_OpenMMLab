@@ -1,3 +1,5 @@
+import time
+
 class IterLoader:
 
     def __init__(self, dataloader):
