@@ -478,7 +478,7 @@ class RandomVerticalFlip:
         Returns:
             flipped image
         """
-        if random.random() < self.p:
+        if random.random() <= self.p:
             img = cv2.flip(img, 0)
             mask = cv2.flip(mask, 0)
 
@@ -501,7 +501,7 @@ class RandomHorizontalFlip:
         Returns:
             flipped image
         """
-        if random.random() < self.p:
+        if random.random() <= self.p:
             img = cv2.flip(img, 1)
             mask = cv2.flip(mask, 1)
 
@@ -721,7 +721,6 @@ class RandomScaleCrop:
 
         return img, mask
 
-
 class PhotoMetricDistortion(object):
     """Apply photometric distortion to image sequentially, every transformation
     is applied with a probability of 0.5. The position of random contrast is in
@@ -912,3 +911,124 @@ class CenterCrop(object):
 #print(img.shape, mask.shape)
 #cv2.imwrite('src.jpg', img)
 #cv2.imwrite('src1.jpg', mask)
+
+
+
+
+
+class MultiScaleFlipAug(object):
+    """Return a set of MultiScale fliped Images"""
+
+
+    def __init__(self,
+                #  transforms,
+                #  img_scale,
+                # img_ratios=None,
+                 img_ratios,
+                 transforms=None,
+                 flip=False,
+                 flip_direction='horizontal'):
+
+        img_ratios = img_ratios if isinstance(img_ratios,
+                                                  list) else [img_ratios]
+
+        self.flip = flip
+        self.img_ratios = img_ratios
+        self.flip_direction = flip_direction if isinstance(
+            flip_direction, list) else [flip_direction]
+
+
+        # normalize and to_tensor
+        self.transforms = transforms
+
+
+    def construct_flip_param(self):
+
+        flip_aug = [False, True] if self.flip else [False]
+        if len(self.flip_direction) == 2:
+            flip_aug.append(True)
+
+
+        flip_direction = self.flip_direction
+        if self.flip:
+            flip_direction.append(flip_direction[0])
+
+        assert len(flip_aug) == len(flip_direction)
+
+        return list(zip(flip_aug, flip_direction))
+
+
+
+
+    #def __call__(self, results):
+    def __call__(self, img, gt_seg):
+        """Call function to apply test time augment transforms on results.
+        Args:
+            results (dict): Result dict contains the data to transform.
+        Returns:
+           dict[str: list]: The augmented data, where each value is wrapped
+               into a list.
+        """
+
+        img_meta = {
+            "seg_map": gt_seg,
+            "imgs" : [],
+            "flip" : []
+        }
+
+        flip_param = self.construct_flip_param()
+
+        for ratio in self.img_ratios:
+
+            resized_img = cv2.resize(img, (0, 0), fx=ratio, fy=ratio)
+
+            for flip, direction in flip_param:
+
+                if flip:
+
+                    if direction == 'horizontal':
+                        flipped_img = cv2.flip(resized_img, 1)
+                        img_meta['flip'].append(direction)
+
+                    if direction == 'vertical':
+                        flipped_img = cv2.flip(resized_img, 0)
+                        img_meta['flip'].append(direction)
+
+                else:
+                    img_meta['flip'].append('none')
+                    flipped_img = resized_img
+
+                if self.transforms is not None:
+                    flipped_img = self.transforms(flipped_img)
+
+                img_meta['imgs'].append(flipped_img)
+
+        return img_meta
+
+
+
+
+# trans = MultiScaleFlipAug(
+#     img_ratios=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0],
+#     #img_ratios=[0.5],
+#     transforms=None,
+#     flip=True,
+#     flip_direction=['horizontal', 'vertical'],
+# )
+
+# # img = cv2.imread('/data/hdd1/by/Self_Contained_OpenMMLab/Lenna_(test_image).png')
+# img = cv2.imread('/data/hdd1/by/Self_Contained_OpenMMLab/LENWe.jpg')
+
+# img_meta = trans(img, img)
+
+# #print(img_meta)
+# flip = img_meta['flip']
+# count = 0
+# for key, value in img_meta.items():
+#     #print(key, value)
+#     if key == 'imgs':
+
+#         for img in value:
+#             print(flip[count])
+#             count += 1
+#             cv2.imwrite('tmp/{}.jpg'.format(count), img)
