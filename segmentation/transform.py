@@ -1055,7 +1055,6 @@ class MultiScaleFlipAug(object):
         }
 
         flip_param = self.construct_flip_param()
-        print('before:', type(gt_seg))
 
         for ratio in self.img_ratios:
 
