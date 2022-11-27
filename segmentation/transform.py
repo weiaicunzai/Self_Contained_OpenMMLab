@@ -960,6 +960,7 @@ class RandomApply(torch.nn.Module):
 
 
 
+
 class MultiScaleFlipAug(object):
     """Return a set of MultiScale fliped Images"""
 
@@ -969,6 +970,8 @@ class MultiScaleFlipAug(object):
                 #  img_scale,
                 # img_ratios=None,
                  img_ratios,
+                 mean,
+                 std,
                  transforms=None,
                  flip=False,
                  flip_direction='horizontal'):
@@ -985,6 +988,12 @@ class MultiScaleFlipAug(object):
         # normalize and to_tensor
         self.transforms = transforms
 
+        for flip_direction in self.flip_direction:
+            assert flip_direction in ['vertical', 'horizontal']
+
+        self.mean = torch.tensor(mean, dtype=torch.float32)
+        self.std = torch.tensor(std, dtype=torch.float32)
+        # print(self.flip_direction, 'cccccccccccccccccccccccccc')
 
     def construct_flip_param(self):
 
@@ -993,15 +1002,41 @@ class MultiScaleFlipAug(object):
             flip_aug.append(True)
 
 
-        flip_direction = self.flip_direction
+        flip_direction = self.flip_direction.copy()
         if self.flip:
             flip_direction.append(flip_direction[0])
 
+        # print(flip_aug, flip_direction)
         assert len(flip_aug) == len(flip_direction)
 
         return list(zip(flip_aug, flip_direction))
 
 
+    def norm(self, img):
+
+        std = self.std
+        mean = self.mean
+
+        if (std == 0).any():
+            raise ValueError('std evaluated to zero after conversion to {}, leading to division by zero.'.format(dtype))
+        if mean.ndim == 1:
+            mean = mean.view(-1, 1, 1)
+        if std.ndim == 1:
+            std = std.view(-1, 1, 1)
+
+        return img.sub_(mean).div_(std)
+
+    def mask_to_tensor(self, mask):
+        mask = torch.from_numpy(mask).long()
+        return mask
+
+
+    def img_to_tensor(self, img):
+        img = img.transpose(2, 0, 1)
+        img = torch.from_numpy(img)
+        img = img.float() / 255.0
+
+        return img
 
 
     def __call__(self, img, gt_seg):
@@ -1014,12 +1049,13 @@ class MultiScaleFlipAug(object):
         """
 
         img_meta = {
-            "seg_map": gt_seg,
+            "seg_map": None,
             "imgs" : [],
             "flip" : []
         }
 
         flip_param = self.construct_flip_param()
+        print('before:', type(gt_seg))
 
         for ratio in self.img_ratios:
 
@@ -1041,13 +1077,21 @@ class MultiScaleFlipAug(object):
                     img_meta['flip'].append('none')
                     flipped_img = resized_img
 
-                if self.transforms is not None:
-                    flipped_img = self.transforms(flipped_img)
+                img_tensor = self.img_to_tensor(flipped_img)
+                norm_img = self.norm(img_tensor)
 
-                img_meta['imgs'].append(flipped_img)
+                # normalize + to_tensor
+                # if self.transforms is not None:
+                    # for trans in self.transforms:
+                        # print(type(gt_seg), trans)
+                        # flipped_img, gt_seg = trans(flipped_img, gt_seg)
+                img_meta['imgs'].append(norm_img)
+
+        img_meta['seg_map'] = self.mask_to_tensor(gt_seg)
+        # print(img_meta['flip'])
+        # import sys; sys.exit()
 
         return img_meta
-
 
 
 
