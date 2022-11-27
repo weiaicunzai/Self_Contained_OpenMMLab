@@ -913,6 +913,50 @@ class CenterCrop(object):
 #cv2.imwrite('src1.jpg', mask)
 
 
+class RandomApply(torch.nn.Module):
+    """Apply randomly a list of transformations with a given probability.
+
+    .. note::
+        In order to script the transformation, please use ``torch.nn.ModuleList`` as input instead of list/tuple of
+        transforms as shown below:
+
+        >>> transforms = transforms.RandomApply(torch.nn.ModuleList([
+        >>>     transforms.ColorJitter(),
+        >>> ]), p=0.3)
+        >>> scripted_transforms = torch.jit.script(transforms)
+
+        Make sure to use only scriptable transformations, i.e. that work with ``torch.Tensor``, does not require
+        `lambda` functions or ``PIL.Image``.
+
+    Args:
+        transforms (sequence or torch.nn.Module): list of transformations
+        p (float): probability
+    """
+
+    def __init__(self, transforms, p=0.5):
+        super().__init__()
+        # _log_api_usage_once(self)
+        self.transforms = transforms
+        self.p = p
+
+    def forward(self, img, mask):
+        if random.random() < self.p:
+        # if self.p < torch.rand(1):
+            return img, mask
+
+        for t in self.transforms:
+            img, mask = t(img, mask)
+        return img, mask
+
+
+    def __repr__(self) -> str:
+        format_string = self.__class__.__name__ + "("
+        format_string += f"\n    p={self.p}"
+        for t in self.transforms:
+            format_string += "\n"
+            format_string += f"    {t}"
+        format_string += "\n)"
+        return format_string
 
 
 
@@ -960,7 +1004,6 @@ class MultiScaleFlipAug(object):
 
 
 
-    #def __call__(self, results):
     def __call__(self, img, gt_seg):
         """Call function to apply test time augment transforms on results.
         Args:
